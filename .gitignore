@@ -3,3 +3,6 @@ node_modules/
 dist/
 coverage/
 .DS_Store
+
+# Firebase / Google Cloud credentials - NEVER commit these
+src/config/serviceAccountKey.json

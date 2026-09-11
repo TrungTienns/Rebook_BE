@@ -29,4 +29,18 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const admin = async (req, res, next) => {
+  const User = require('../models/User');
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (user && user.role === 'admin') {
+      next();
+    } else {
+      res.status(403).json({ success: false, message: 'Not authorized as an admin' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { protect, admin };

@@ -34,5 +34,9 @@ router.use('/ratings', ratingRoutes);
 // Comment routes
 router.use('/comments', commentRoutes);
 
+// User routes
+const userRoutes = require('./userRoutes');
+router.use('/users', userRoutes);
+
 module.exports = router;
 
