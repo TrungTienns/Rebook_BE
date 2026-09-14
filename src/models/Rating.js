@@ -30,6 +30,10 @@ const Rating = sequelize.define('Rating', {
   review: {
     type: DataTypes.TEXT,
     allowNull: true,
+  },
+  status: {
+    type: DataTypes.ENUM('visible', 'hidden', 'deleted'),
+    defaultValue: 'visible',
   }
 }, {
   tableName: 'ratings',

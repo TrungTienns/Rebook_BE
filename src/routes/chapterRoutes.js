@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getChaptersByBook, createChapter } = require('../controllers/chapterController');
-const { uploadCloudPdf } = require('../config/cloudinary');
+const { getChaptersByBook, createChapter, getAllChapters, updateChapter, deleteChapter } = require('../controllers/chapterController');
+const { uploadTempPdf } = require('../config/cloudinary');
 
 /**
  * @swagger
@@ -68,6 +68,63 @@ router.get('/book/:bookId', getChaptersByBook);
  *       201:
  *         description: Tạo chương thành công
  */
-router.post('/', uploadCloudPdf.single('file_pdf'), createChapter);
+router.post('/', uploadTempPdf.fields([{ name: 'file_pdf', maxCount: 1 }, { name: 'file_pdf_en', maxCount: 1 }]), createChapter);
+
+/**
+ * @swagger
+ * /chapters:
+ *   get:
+ *     summary: Lấy danh sách tất cả chương (Admin)
+ *     tags: [Chapters]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/', getAllChapters);
+
+/**
+ * @swagger
+ * /chapters/{id}:
+ *   put:
+ *     summary: Cập nhật thông tin chương
+ *     tags: [Chapters]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.put('/:id', uploadTempPdf.fields([{ name: 'file_pdf', maxCount: 1 }, { name: 'file_pdf_en', maxCount: 1 }]), updateChapter);
+
+/**
+ * @swagger
+ * /chapters/{id}:
+ *   delete:
+ *     summary: Xóa chương
+ *     tags: [Chapters]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.delete('/:id', deleteChapter);
 
 module.exports = router;

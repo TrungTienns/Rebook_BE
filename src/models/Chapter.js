@@ -35,6 +35,11 @@ const Chapter = sequelize.define('Chapter', {
     allowNull: true,
     field: 'pdf_url'
   },
+  pdfUrlEn: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+    field: 'pdf_url_en'
+  },
   isVip: { 
     type: DataTypes.BOOLEAN, 
     defaultValue: false, 

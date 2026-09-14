@@ -1,6 +1,8 @@
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -35,4 +37,25 @@ const uploadCloudPdf = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // Giới hạn 50MB
 });
 
-module.exports = { cloudinary, uploadCloudImage, uploadCloudPdf };
+// Configure Multer storage to local disk (Temporary for PDF compression)
+const tempDir = path.join(__dirname, '..', '..', 'tmp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+const storageTempPdf = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, tempDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '.pdf');
+  }
+});
+
+const uploadTempPdf = multer({ 
+  storage: storageTempPdf,
+  limits: { fileSize: 50 * 1024 * 1024 } // Giới hạn 50MB
+});
+
+module.exports = { cloudinary, uploadCloudImage, uploadCloudPdf, uploadTempPdf };

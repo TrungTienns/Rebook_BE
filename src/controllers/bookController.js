@@ -3,15 +3,56 @@ const Author = require('../models/Author');
 const Category = require('../models/Category');
 const Chapter = require('../models/Chapter');
 const slugify = require('slugify');
+const { Op } = require('sequelize');
+
 
 const getAllBooks = async (req, res) => {
   try {
+    const { category, type, sort, q } = req.query;
+    
+    // Build where clause
+    const whereClause = {};
+    
+    // 1. Search by title
+    if (q && q.trim() !== '') {
+      whereClause.title = { [Op.like]: `%${q.trim()}%` };
+    }
+    
+    // 2. Filter by VIP type
+    if (type === 'free') {
+      whereClause.isVip = false;
+    } else if (type === 'vip') {
+      whereClause.isVip = true;
+    }
+    
+    // 3. Category filter (through include)
+    const categoryInclude = {
+      model: Category,
+      as: 'categories',
+      attributes: ['id', 'name', 'slug'],
+      through: { attributes: [] }
+    };
+    
+    if (category && category !== 'all') {
+      categoryInclude.where = { slug: category };
+    }
+
+    // 4. Sorting
+    let orderClause = [['created_at', 'DESC']]; // default newest
+    if (sort === 'oldest') orderClause = [['created_at', 'ASC']];
+    else if (sort === 'a-z') orderClause = [['title', 'ASC']];
+    else if (sort === 'z-a') orderClause = [['title', 'DESC']];
+    else if (sort === 'views') orderClause = [['totalViews', 'DESC']];
+
     const books = await Book.findAll({
+      where: whereClause,
       include: [
         { model: Author, as: 'author', attributes: ['id', 'penName'] },
-        { model: Category, as: 'categories', attributes: ['id', 'name'], through: { attributes: [] } }
-      ]
+        categoryInclude
+      ],
+      order: orderClause
     });
+    
     res.json({ success: true, data: books });
   } catch (error) {
     console.error(error);
@@ -21,7 +62,7 @@ const getAllBooks = async (req, res) => {
 
 const createBook = async (req, res) => {
   try {
-    let { title, slug, description, categoryId, authorName } = req.body;
+    let { title, titleEn, slug, description, categoryId, authorName, isVip, vipPrice } = req.body;
     
     // 1. Tự động tạo slug nếu không có
     if (!slug) {
@@ -49,12 +90,19 @@ const createBook = async (req, res) => {
       coverImageUrl = req.file.path; // Cloudinary URL
     }
 
+    // Xử lý isVip (khi gửi qua form data có thể là string 'true' / 'false')
+    const parsedIsVip = isVip === 'true' || isVip === true;
+    const parsedVipPrice = parsedIsVip ? parseInt(vipPrice, 10) || 0 : 0;
+
     const book = await Book.create({ 
       title, 
+      titleEn,
       slug, 
       authorId: finalAuthorId, 
       description,
-      coverImageUrl
+      coverImageUrl,
+      isVip: parsedIsVip,
+      vipPrice: parsedVipPrice
     });
 
     // 3. Liên kết với Category (nếu có)
@@ -78,7 +126,7 @@ const getBookBySlug = async (req, res) => {
       include: [
         { model: Author, as: 'author', attributes: ['id', 'penName'] },
         { model: Category, as: 'categories', attributes: ['id', 'name'], through: { attributes: [] } },
-        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl'] }
+        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl', 'pdfUrlEn'] }
       ],
       order: [
         [{ model: Chapter, as: 'chapters' }, 'chapterNumber', 'ASC']
@@ -99,14 +147,19 @@ const getBookBySlug = async (req, res) => {
 const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, description, categoryId, authorName } = req.body;
+    let { title, titleEn, description, categoryId, authorName, isVip, vipPrice } = req.body;
 
     const book = await Book.findByPk(id);
     if (!book) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy sách' });
     }
 
-    let updateData = { title, description };
+    let updateData = { title, titleEn, description };
+    
+    if (isVip !== undefined) {
+      updateData.isVip = isVip === 'true' || isVip === true;
+      updateData.vipPrice = updateData.isVip ? parseInt(vipPrice, 10) || 0 : 0;
+    }
     
     // Nếu có update Tác giả
     if (authorName && authorName.trim() !== '') {
