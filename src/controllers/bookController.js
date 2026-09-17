@@ -62,7 +62,7 @@ const getAllBooks = async (req, res) => {
 
 const createBook = async (req, res) => {
   try {
-    let { title, titleEn, slug, description, categoryId, authorName, isVip, vipPrice } = req.body;
+    let { title, titleEn, slug, description, categoryId, authorName, isVip, vipPrice, status } = req.body;
     
     // 1. Tự động tạo slug nếu không có
     if (!slug) {
@@ -102,7 +102,8 @@ const createBook = async (req, res) => {
       description,
       coverImageUrl,
       isVip: parsedIsVip,
-      vipPrice: parsedVipPrice
+      vipPrice: parsedVipPrice,
+      status: status || 'ongoing'
     });
 
     // 3. Liên kết với Category (nếu có)
@@ -126,7 +127,7 @@ const getBookBySlug = async (req, res) => {
       include: [
         { model: Author, as: 'author', attributes: ['id', 'penName'] },
         { model: Category, as: 'categories', attributes: ['id', 'name'], through: { attributes: [] } },
-        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl', 'pdfUrlEn'] }
+        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl', 'pdfUrlEn', 'epubUrl', 'epubUrlEn'] }
       ],
       order: [
         [{ model: Chapter, as: 'chapters' }, 'chapterNumber', 'ASC']
@@ -144,10 +145,52 @@ const getBookBySlug = async (req, res) => {
   }
 };
 
+const getRelatedBooks = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    
+    // 1. Lấy thông tin sách hiện tại
+    const currentBook = await Book.findOne({
+      where: { slug },
+      include: [{ model: Category, as: 'categories', attributes: ['id'] }]
+    });
+
+    if (!currentBook) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sách' });
+    }
+
+    // 2. Lấy danh sách ID thể loại của sách hiện tại
+    const categoryIds = currentBook.categories.map(c => c.id);
+
+    // 3. Tìm các sách khác cùng thể loại
+    const relatedBooks = await Book.findAll({
+      where: {
+        id: { [Op.ne]: currentBook.id } // Loại trừ sách hiện tại
+      },
+      include: [
+        {
+          model: Category,
+          as: 'categories',
+          where: categoryIds.length > 0 ? { id: { [Op.in]: categoryIds } } : {},
+          attributes: []
+        },
+        { model: Author, as: 'author', attributes: ['penName'] }
+      ],
+      limit: 10,
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({ success: true, data: relatedBooks });
+  } catch (error) {
+    console.error('Error fetching related books:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+};
+
 const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, titleEn, description, categoryId, authorName, isVip, vipPrice } = req.body;
+    let { title, titleEn, description, categoryId, authorName, isVip, vipPrice, status } = req.body;
 
     const book = await Book.findByPk(id);
     if (!book) {
@@ -155,6 +198,7 @@ const updateBook = async (req, res) => {
     }
 
     let updateData = { title, titleEn, description };
+    if (status) updateData.status = status;
     
     if (isVip !== undefined) {
       updateData.isVip = isVip === 'true' || isVip === true;
@@ -264,5 +308,12 @@ const searchBooks = async (req, res) => {
   }
 };
 
-module.exports = { getAllBooks, createBook, getBookBySlug, updateBook, deleteBook, searchBooks };
-
+module.exports = { 
+  getAllBooks, 
+  createBook, 
+  getBookBySlug, 
+  getRelatedBooks,
+  updateBook, 
+  deleteBook,
+  searchBooks
+};

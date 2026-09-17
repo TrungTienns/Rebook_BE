@@ -6,6 +6,7 @@ const Category = sequelize.define('Category', {
   name: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   slug: { type: DataTypes.STRING(120), allowNull: false, unique: true },
   description: { type: DataTypes.STRING(500) },
+  imageUrl: { type: DataTypes.STRING(255), field: 'image_url' },
   parentId: { type: DataTypes.INTEGER.UNSIGNED, field: 'parent_id' }
 }, {
   tableName: 'categories',

@@ -40,4 +40,11 @@ Book.belongsToMany(Category, {
   otherKey: 'categoryId' 
 });
 
+Category.belongsToMany(Book, {
+  through: BookCategory,
+  as: 'books',
+  foreignKey: 'categoryId',
+  otherKey: 'bookId'
+});
+
 module.exports = Book;

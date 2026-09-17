@@ -1,9 +1,22 @@
 const Category = require('../models/Category');
+const Book = require('../models/Book');
+const { Sequelize } = require('sequelize');
 const slugify = require('slugify');
 
 const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.findAll();
+    const categories = await Category.findAll({
+      attributes: {
+        include: [[Sequelize.fn('COUNT', Sequelize.col('books.id')), 'bookCount']]
+      },
+      include: [{
+        model: Book,
+        as: 'books',
+        attributes: [],
+        through: { attributes: [] }
+      }],
+      group: ['Category.id']
+    });
     res.json({ success: true, data: categories });
   } catch (error) {
     console.error(error);
@@ -19,8 +32,9 @@ const createCategory = async (req, res) => {
     }
 
     const slug = slugify(name, { lower: true, strict: true }) + '-' + Math.floor(Math.random() * 1000);
+    const imageUrl = req.file ? req.file.path : null;
     
-    const newCategory = await Category.create({ name, slug, description });
+    const newCategory = await Category.create({ name, slug, description, imageUrl });
     res.status(201).json({ success: true, data: newCategory });
   } catch (error) {
     console.error(error);
@@ -45,6 +59,10 @@ const updateCategory = async (req, res) => {
     // Nếu đổi tên thì update slug
     if (name) {
       category.slug = slugify(name, { lower: true, strict: true }) + '-' + Math.floor(Math.random() * 1000);
+    }
+    
+    if (req.file) {
+      category.imageUrl = req.file.path;
     }
     
     await category.save();

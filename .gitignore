@@ -6,3 +6,4 @@ coverage/
 
 # Firebase / Google Cloud credentials - NEVER commit these
 src/config/serviceAccountKey.json
+database

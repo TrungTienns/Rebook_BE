@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getAllCategories, createCategory, updateCategory, deleteCategory } = require('../controllers/categoryController');
+const { uploadCloudImage } = require('../config/cloudinary');
 
 /**
  * @swagger
@@ -42,8 +43,8 @@ router.get('/', getAllCategories);
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', createCategory);
-router.put('/:id', updateCategory);
+router.post('/', uploadCloudImage.single('image'), createCategory);
+router.put('/:id', uploadCloudImage.single('image'), updateCategory);
 router.delete('/:id', deleteCategory);
 
 module.exports = router;

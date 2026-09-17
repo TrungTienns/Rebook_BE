@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllBooks, createBook, getBookBySlug, updateBook, deleteBook, searchBooks } = require('../controllers/bookController');
+const { getAllBooks, createBook, getBookBySlug, getRelatedBooks, updateBook, deleteBook, searchBooks } = require('../controllers/bookController');
 const { uploadCloudImage } = require('../config/cloudinary');
 
 /**
@@ -74,6 +74,24 @@ router.post('/', uploadCloudImage.single('coverImage'), createBook);
  *         description: Book details
  */
 router.get('/:slug', getBookBySlug);
+
+/**
+ * @swagger
+ * /books/{slug}/related:
+ *   get:
+ *     summary: Get related books by slug
+ *     tags: [Books]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of related books
+ */
+router.get('/:slug/related', getRelatedBooks);
 
 /**
  * @swagger

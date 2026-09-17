@@ -43,19 +43,20 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-const storageTempPdf = multer.diskStorage({
+const storageTempFile = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, tempDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + '.pdf');
+    const ext = path.extname(file.originalname) || '.tmp';
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
-const uploadTempPdf = multer({ 
-  storage: storageTempPdf,
+const uploadTempFile = multer({ 
+  storage: storageTempFile,
   limits: { fileSize: 50 * 1024 * 1024 } // Giới hạn 50MB
 });
 
-module.exports = { cloudinary, uploadCloudImage, uploadCloudPdf, uploadTempPdf };
+module.exports = { cloudinary, uploadCloudImage, uploadCloudPdf, uploadTempFile };

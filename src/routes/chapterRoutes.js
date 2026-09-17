@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getChaptersByBook, createChapter, getAllChapters, updateChapter, deleteChapter } = require('../controllers/chapterController');
-const { uploadTempPdf } = require('../config/cloudinary');
+const { uploadTempFile } = require('../config/cloudinary');
 
 /**
  * @swagger
@@ -68,7 +68,12 @@ router.get('/book/:bookId', getChaptersByBook);
  *       201:
  *         description: Tạo chương thành công
  */
-router.post('/', uploadTempPdf.fields([{ name: 'file_pdf', maxCount: 1 }, { name: 'file_pdf_en', maxCount: 1 }]), createChapter);
+router.post('/', uploadTempFile.fields([
+  { name: 'file_pdf', maxCount: 1 }, 
+  { name: 'file_pdf_en', maxCount: 1 },
+  { name: 'file_epub', maxCount: 1 },
+  { name: 'file_epub_en', maxCount: 1 }
+]), createChapter);
 
 /**
  * @swagger
@@ -107,7 +112,12 @@ router.get('/', getAllChapters);
  *       200:
  *         description: OK
  */
-router.put('/:id', uploadTempPdf.fields([{ name: 'file_pdf', maxCount: 1 }, { name: 'file_pdf_en', maxCount: 1 }]), updateChapter);
+router.put('/:id', uploadTempFile.fields([
+  { name: 'file_pdf', maxCount: 1 }, 
+  { name: 'file_pdf_en', maxCount: 1 },
+  { name: 'file_epub', maxCount: 1 },
+  { name: 'file_epub_en', maxCount: 1 }
+]), updateChapter);
 
 /**
  * @swagger

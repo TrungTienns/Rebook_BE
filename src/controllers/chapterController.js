@@ -108,15 +108,49 @@ const createChapter = async (req, res) => {
       return finalCloudinaryUrl;
     };
 
-    // Xử lý upload đa file (Tiếng Việt và Tiếng Anh)
+    // Hàm xử lý upload file EPUB lên Cloudinary (Không nén)
+    const processEpubUpload = async (file) => {
+      const originalPath = file.path;
+      const newPath = originalPath + '.epub';
+      fs.renameSync(originalPath, newPath);
+      let finalCloudinaryUrl = null;
+
+      try {
+        console.log(`Starting EPUB upload for ${file.originalname}...`);
+        const result = await cloudinary.uploader.upload(newPath, {
+          folder: 'rebook_epubs',
+          resource_type: 'raw'
+        });
+        finalCloudinaryUrl = result.secure_url;
+      } catch (err) {
+        console.error('Lỗi upload EPUB:', err);
+        throw new Error('Lỗi khi tải file EPUB lên hệ thống: ' + err.message);
+      } finally {
+        // Dọn dẹp file tạm
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
+      }
+      
+      return finalCloudinaryUrl;
+    };
+
+    // Xử lý upload đa file (Tiếng Việt và Tiếng Anh, PDF và EPUB)
     let pdfUrl = null;
     let pdfUrlEn = null;
+    let epubUrl = null;
+    let epubUrlEn = null;
+
     if (req.files) {
       if (req.files['file_pdf'] && req.files['file_pdf'].length > 0) {
         pdfUrl = await processPdfUpload(req.files['file_pdf'][0]);
       }
       if (req.files['file_pdf_en'] && req.files['file_pdf_en'].length > 0) {
         pdfUrlEn = await processPdfUpload(req.files['file_pdf_en'][0]);
+      }
+      if (req.files['file_epub'] && req.files['file_epub'].length > 0) {
+        epubUrl = await processEpubUpload(req.files['file_epub'][0]);
+      }
+      if (req.files['file_epub_en'] && req.files['file_epub_en'].length > 0) {
+        epubUrlEn = await processEpubUpload(req.files['file_epub_en'][0]);
       }
     }
 
@@ -125,9 +159,11 @@ const createChapter = async (req, res) => {
       bookId,
       chapterNumber: finalChapterNumber,
       title,
-      content: content || ' ', // Mặc định là khoảng trắng để tránh lỗi NOT NULL trong DB
+      content: content || ' ', 
       pdfUrl,
       pdfUrlEn,
+      epubUrl,
+      epubUrlEn,
       isVip: isVip === 'true' || isVip === true,
       priceCoin: priceCoin || 0,
       status: status || 'published',
@@ -247,8 +283,24 @@ const updateChapter = async (req, res) => {
       return finalCloudinaryUrl;
     };
 
+    const processEpubUpload = async (file) => {
+      const originalPath = file.path;
+      const newPath = originalPath + '.epub';
+      fs.renameSync(originalPath, newPath);
+      let finalCloudinaryUrl = null;
+      try {
+        const result = await cloudinary.uploader.upload(newPath, { folder: 'rebook_epubs', resource_type: 'raw' });
+        finalCloudinaryUrl = result.secure_url;
+      } finally {
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath);
+      }
+      return finalCloudinaryUrl;
+    };
+
     let newPdfUrl = chapter.pdfUrl;
     let newPdfUrlEn = chapter.pdfUrlEn;
+    let newEpubUrl = chapter.epubUrl;
+    let newEpubUrlEn = chapter.epubUrlEn;
 
     if (req.files) {
       if (req.files['file_pdf'] && req.files['file_pdf'].length > 0) {
@@ -265,6 +317,20 @@ const updateChapter = async (req, res) => {
         }
         newPdfUrlEn = await processPdfUpload(req.files['file_pdf_en'][0]);
       }
+      if (req.files['file_epub'] && req.files['file_epub'].length > 0) {
+        if (chapter.epubUrl) {
+          const oldPublicId = extractPublicIdFromUrl(chapter.epubUrl);
+          if (oldPublicId) await cloudinary.uploader.destroy(oldPublicId, { resource_type: 'raw' }).catch(console.error);
+        }
+        newEpubUrl = await processEpubUpload(req.files['file_epub'][0]);
+      }
+      if (req.files['file_epub_en'] && req.files['file_epub_en'].length > 0) {
+        if (chapter.epubUrlEn) {
+          const oldPublicId = extractPublicIdFromUrl(chapter.epubUrlEn);
+          if (oldPublicId) await cloudinary.uploader.destroy(oldPublicId, { resource_type: 'raw' }).catch(console.error);
+        }
+        newEpubUrlEn = await processEpubUpload(req.files['file_epub_en'][0]);
+      }
     }
 
     await chapter.update({
@@ -273,6 +339,8 @@ const updateChapter = async (req, res) => {
       content: content !== undefined ? content : chapter.content,
       pdfUrl: newPdfUrl,
       pdfUrlEn: newPdfUrlEn,
+      epubUrl: newEpubUrl,
+      epubUrlEn: newEpubUrlEn,
       isVip: isVip !== undefined ? (isVip === 'true' || isVip === true) : chapter.isVip,
       priceCoin: priceCoin !== undefined ? parseInt(priceCoin, 10) : chapter.priceCoin,
       status: status || chapter.status,

@@ -9,6 +9,8 @@ const favoriteRoutes = require('./favoriteRoutes');
 const readingHistoryRoutes = require('./readingHistoryRoutes');
 const ratingRoutes = require('./ratingRoutes');
 const commentRoutes = require('./commentRoutes');
+const dashboardRoutes = require('./dashboardRoutes');
+const notificationRoutes = require('./notificationRoutes');
 
 // Auth routes
 router.use('/auth', authRoutes);
@@ -37,6 +39,12 @@ router.use('/comments', commentRoutes);
 // User routes
 const userRoutes = require('./userRoutes');
 router.use('/users', userRoutes);
+
+// Dashboard routes
+router.use('/dashboard', dashboardRoutes);
+
+// Notification routes
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;
 
