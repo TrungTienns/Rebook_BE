@@ -18,4 +18,14 @@ const Author = sequelize.define('Author', {
 
 Author.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// --- Associations added for author management feature ---
+const AuthorFollow = require('./AuthorFollow');
+Author.hasMany(AuthorFollow, { foreignKey: 'authorId', as: 'followers' });
+Author.belongsToMany(User, {
+  through: AuthorFollow,
+  as: 'followerUsers',
+  foreignKey: 'authorId',
+  otherKey: 'userId'
+});
+
 module.exports = Author;

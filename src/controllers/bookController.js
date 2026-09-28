@@ -62,16 +62,18 @@ const getAllBooks = async (req, res) => {
 
 const createBook = async (req, res) => {
   try {
-    let { title, titleEn, slug, description, categoryId, authorName, isVip, vipPrice, status } = req.body;
+    let { title, titleEn, slug, description, categoryId, authorName, authorId, isVip, vipPrice, status } = req.body;
     
     // 1. Tự động tạo slug nếu không có
     if (!slug) {
       slug = slugify(title, { lower: true, strict: true }) + '-' + Date.now();
     }
 
-    // 2. Xử lý Tác Giả (nhập vào dạng text authorName)
+    // 2. Xử lý Tác Giả (ưu tiên authorId, nếu không thì dùng authorName)
     let finalAuthorId = 1; // Default
-    if (authorName && authorName.trim() !== '') {
+    if (authorId && authorId !== '') {
+      finalAuthorId = parseInt(authorId, 10);
+    } else if (authorName && authorName.trim() !== '') {
       const [author] = await Author.findOrCreate({
         where: { penName: authorName.trim() },
         defaults: { slug: slugify(authorName, { lower: true, strict: true }) }
@@ -127,7 +129,7 @@ const getBookBySlug = async (req, res) => {
       include: [
         { model: Author, as: 'author', attributes: ['id', 'penName'] },
         { model: Category, as: 'categories', attributes: ['id', 'name'], through: { attributes: [] } },
-        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl', 'pdfUrlEn', 'epubUrl', 'epubUrlEn'] }
+        { model: Chapter, as: 'chapters', attributes: ['id', 'chapterNumber', 'title', 'pdfUrl', 'pdfUrlEn', 'epubUrl', 'epubUrlEn', 'isVip', 'priceCoin'] }
       ],
       order: [
         [{ model: Chapter, as: 'chapters' }, 'chapterNumber', 'ASC']
@@ -190,7 +192,7 @@ const getRelatedBooks = async (req, res) => {
 const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, titleEn, description, categoryId, authorName, isVip, vipPrice, status } = req.body;
+    let { title, titleEn, description, categoryId, authorName, authorId, isVip, vipPrice, status } = req.body;
 
     const book = await Book.findByPk(id);
     if (!book) {
@@ -206,7 +208,9 @@ const updateBook = async (req, res) => {
     }
     
     // Nếu có update Tác giả
-    if (authorName && authorName.trim() !== '') {
+    if (authorId && authorId !== '') {
+      updateData.authorId = parseInt(authorId, 10);
+    } else if (authorName && authorName.trim() !== '') {
       const [author] = await Author.findOrCreate({
         where: { penName: authorName.trim() },
         defaults: { slug: slugify(authorName, { lower: true, strict: true }) }

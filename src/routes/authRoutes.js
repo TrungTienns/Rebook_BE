@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, firebaseLogin } = require('../controllers/authController');
+const { register, login, firebaseLogin, getMe } = require('../controllers/authController');
+const { protect } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -95,5 +96,25 @@ router.post('/login', login);
  *         description: Invalid Firebase token
  */
 router.post('/firebase', firebaseLogin);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current logged in user (token validation)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user info
+ *       401:
+ *         description: Not authorized, token failed
+ *       403:
+ *         description: Account is banned
+ *       404:
+ *         description: User not found
+ */
+router.get('/me', protect, getMe);
 
 module.exports = router;

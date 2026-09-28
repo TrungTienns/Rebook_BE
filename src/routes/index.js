@@ -46,5 +46,13 @@ router.use('/dashboard', dashboardRoutes);
 // Notification routes
 router.use('/notifications', notificationRoutes);
 
+// Author routes
+const authorRoutes = require('./authorRoutes');
+router.use('/authors', authorRoutes);
+
+// Payment routes
+const paymentRoutes = require('./paymentRoutes');
+router.use('/payments', paymentRoutes);
+
 module.exports = router;
 

@@ -60,7 +60,7 @@ const register = async (req, res) => {
       res.status(400).json({ success: false, message: 'Invalid user data' });
     }
   } catch (error) {
-    console.error(error);
+    console.error(error); require('fs').writeFileSync('error_log.txt', error.stack || error.message);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -161,8 +161,36 @@ const firebaseLogin = async (req, res) => {
   }
 };
 
+// @desc    Get current user profile (Token validation)
+// @route   GET /api/auth/me
+const getMe = async (req, res) => {
+  try {
+    // req.user is populated by protect middleware
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'username', 'email', 'fullName', 'avatarUrl', 'role', 'isVip', 'isBanned']
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ success: false, message: 'Your account has been banned' });
+    }
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   register,
   login,
-  firebaseLogin
+  firebaseLogin,
+  getMe
 };
